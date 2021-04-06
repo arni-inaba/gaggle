@@ -57,11 +57,16 @@ class Service:
             async def doit():
                 cooked_request = getattr(self._disco_client, name)(*args, **kwargs)
                 headers = {'Authorization': f'Bearer {self._gaggle_client.access_token}', **cooked_request.headers}
+                params = {}
+                if self._gaggle_client.supports_all_drives:
+                    params["supportsAllDrives"] = "true"
                 logger.info(f"Service._request.doit(), cooked_request={cooked_request.method} {cooked_request.uri}")
                 if cooked_request.method == 'GET':
-                    return await self._session.get(cooked_request.uri, headers=headers)
+                    return await self._session.get(cooked_request.uri, headers=headers, params=params)
                 elif cooked_request.method == 'POST':
-                    return await self._session.post(cooked_request.uri, data=cooked_request.body, headers=headers)
+                    return await self._session.post(
+                        cooked_request.uri, data=cooked_request.body, headers=headers, params=params
+                    )
             while True:
                 try:
                     response = await doit()
@@ -116,6 +121,7 @@ class Client:
         self.credentials = credentials
         self.access_token = credentials.token
         self.http = httplib2.Http()
+        self.supports_all_drives = kwargs.get("supports_all_drives", False)
         self._session = session
         self._services = {}
 
